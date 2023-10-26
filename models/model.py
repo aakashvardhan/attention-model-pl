@@ -115,7 +115,7 @@ class MultiHeadAttentionBlock(pl.LightningModule):
         attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)
         if mask is not None:
             # Write a very low value (indicating -inf) to the positions where mask is 0
-            attention_scores.masked_fill_(mask == 0, -1e9)
+            attention_scores.masked_fill_(mask == 0, -1e4)
         attention_scores = attention_scores.softmax(dim=-1) # (batch, h, seq_len, seq_len) # softmax over the last dimension
 
         if dropout is not None:
