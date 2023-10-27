@@ -109,7 +109,11 @@ class MultiHeadAttentionBlock(pl.LightningModule):
 
 
     @staticmethod
-    def attention(query, key, value, mask, dropout: nn.Dropout):
+    def attention(query: torch.Tensor, 
+                  key: torch.Tensor,
+                value: torch.Tensor, 
+                mask: torch.Tensor, 
+                dropout: nn.Dropout):
         d_k = query.shape[-1]
         # (batch, h, seq_len, d_k) x (batch, h, d_k, seq_len) -> (batch, h, seq_len, seq_len)
         attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)

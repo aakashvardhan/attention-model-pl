@@ -25,9 +25,6 @@ class LitModel(pl.LightningModule):
         self.src_vocab_size = src_vocab_size
         self.tgt_vocab_size = tgt_vocab_size
         self.label_smoothing = label_smoothing
-        self.cer_metric = torchmetrics.text.CharErrorRate()
-        self.wer_metric = torchmetrics.text.WordErrorRate()
-        self.bleu_metric = torchmetrics.text.BLEUScore()
         self.num_examples = num_examples
 
         self.model : Transformer = build_transformer(
@@ -89,6 +86,9 @@ class LitModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         self.initialize_attributes()
+        cer_metric = torchmetrics.text.CharErrorRate()
+        wer_metric = torchmetrics.text.WordErrorRate()
+        bleu_metric = torchmetrics.text.BLEUScore()
         if batch_idx < self.num_examples:
             encoder_input = batch['encoder_input']
             encoder_mask = batch['encoder_mask']
@@ -112,16 +112,16 @@ class LitModel(pl.LightningModule):
             print(f"{f'PREDICTED: ':>12}{self.predicted}")
 
         if batch_idx == self.num_examples-1:      
-            cer = self.cer_metric(self.predicted, self.expected)
+            cer = cer_metric(self.predicted, self.expected)
             self.log("Validation CER", cer)
 
             # Word Error Rate
-            wer = self.wer_metric(self.predicted, self.expected)
+            wer = wer_metric(self.predicted, self.expected)
             self.log("Validation WER", wer)
 
             # BLEU Score
             
-            bleu = self.bleu_metric(self.predicted, self.expected)
+            bleu = bleu_metric(self.predicted, self.expected)
             self.log("Validation BLEU", bleu)
 
 
