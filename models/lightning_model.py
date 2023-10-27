@@ -18,12 +18,17 @@ class LitModel(pl.LightningModule):
                 src_vocab_size,
                 tgt_vocab_size,
                 eps=1e-9, 
-                label_smoothing=0.1):
+                label_smoothing=0.1,
+                num_examples=5):
         super().__init__()
         self.eps = eps
         self.src_vocab_size = src_vocab_size
         self.tgt_vocab_size = tgt_vocab_size
         self.label_smoothing = label_smoothing
+        self.cer_metric = torchmetrics.text.CharErrorRate()
+        self.wer_metric = torchmetrics.text.WordErrorRate()
+        self.bleu_metric = torchmetrics.text.BLEUScore()
+        self.num_examples = num_examples
 
         self.model : Transformer = build_transformer(
             self.src_vocab_size,
@@ -33,7 +38,7 @@ class LitModel(pl.LightningModule):
             config['d_model'])
         
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config["lr"], eps=self.eps)
-        self.writer = SummaryWriter(config['experiment_name'])
+        self.save_hyperparameters(ignore=['model']) 
     
     def initialize_attributes(self):
         self.tk_src = self.trainer.datamodule.tokenizer_src
@@ -46,9 +51,6 @@ class LitModel(pl.LightningModule):
         self.tgt_pad_token = self.tk_tgt.token_to_id("[PAD]")
         self.tgt_sos_token = self.tk_tgt.token_to_id("[SOS]")
         self.tgt_eos_token = self.tk_tgt.token_to_id("[EOS]")
-
-
-        self.writer = SummaryWriter(config['experiment_name'])
 
         
     def configure_optimizers(self):
@@ -77,7 +79,7 @@ class LitModel(pl.LightningModule):
         loss = self.calculate_loss(proj_output.view(-1, self.tgt_vocab_size), label.view(-1))
         self.log('train_loss', loss, 
                  on_step=True, on_epoch=True, 
-                 prog_bar=True, logger=True)
+                 prog_bar=True)
         return loss
     
     def on_validation_epoch_start(self):
@@ -87,49 +89,40 @@ class LitModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         self.initialize_attributes()
-        encoder_input = batch['encoder_input']
-        encoder_mask = batch['encoder_mask']
+        if batch_idx < self.num_examples:
+            encoder_input = batch['encoder_input']
+            encoder_mask = batch['encoder_mask']
 
-        # check that the batch size is 1
-        assert encoder_input.size(0) == 1, "Batch size must be 1 for validation"
+            # check that the batch size is 1
+            assert encoder_input.size(0) == 1, "Batch size must be 1 for validation"
 
-        model_out = greedy_decode(self.model, encoder_input, encoder_mask, self.tk_src, self.tk_tgt, config['seq_len'])
+            model_out = greedy_decode(self.model, encoder_input, encoder_mask, self.tk_src, self.tk_tgt, config['seq_len'])
 
-        source_text = batch['src_text'][0]
-        target_text = batch['tgt_text'][0]
-        model_out_text = self.tk_tgt.decode(model_out.detach().cpu().numpy())
+            source_text = batch['src_text'][0]
+            target_text = batch['tgt_text'][0]
+            model_out_text = self.tk_tgt.decode(model_out.detach().cpu().numpy())
 
-        self.source_texts.append(source_text)
-        self.expected.append(target_text)
-        self.predicted.append(model_out_text)
+            self.source_texts.append(source_text)
+            self.expected.append(target_text)
+            self.predicted.append(model_out_text)
 
-    def on_validation_epoch_end(self):
-        # log 5 random samples
-
-        for _ in range(5):
-            idx = random.randint(0, len(self.source_texts) - 1)
-            self.logger.experiment.add_text("Validation Sample", 
-                                            f"Source: {self.source_texts[idx]}\nExpected: {self.expected[idx]}\nPredicted: {self.predicted[idx]}",
-                                            self.current_epoch)
             print("-" * 80)
-            print(f"{f'SOURCE: '}{self.source_texts[idx]}")
-            print(f"{f'TARGET: '}{self.expected[idx]}")
-            print(f"{f'PREDICTED: '}{self.predicted[idx]}")
-        
-        # Char Error Rate
-        metric = torchmetrics.text.CharErrorRate()
-        cer = metric(self.predicted, self.expected)
-        self.log("Validation CER", cer, prog_bar=True, logger=True)
+            print(f"{f'SOURCE: ':>12}{self.source_texts}")
+            print(f"{f'TARGET: ':>12}{self.expected}")
+            print(f"{f'PREDICTED: ':>12}{self.predicted}")
 
-        # Word Error Rate
-        metric = torchmetrics.text.WordErrorRate()
-        wer = metric(self.predicted, self.expected)
-        self.log("Validation WER", wer, prog_bar=True, logger=True)
+        if batch_idx == self.num_examples-1:      
+            cer = self.cer_metric(self.predicted, self.expected)
+            self.log("Validation CER", cer)
 
-        # BLEU Score
-        metric = torchmetrics.text.BLEUScore()
-        bleu = metric(self.predicted, self.expected)
-        self.log("Validation BLEU", bleu, prog_bar=True, logger=True)
+            # Word Error Rate
+            wer = self.wer_metric(self.predicted, self.expected)
+            self.log("Validation WER", wer)
+
+            # BLEU Score
+            
+            bleu = self.bleu_metric(self.predicted, self.expected)
+            self.log("Validation BLEU", bleu)
 
 
 
