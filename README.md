@@ -9,9 +9,9 @@ Note: The Attention model is taken from 'Attention is all you need' (https://arx
 
 - **Purpose**: Normalizes the input across the features.
 - **Computation**: 
-  \[
+  $\[
   \text{output} = \alpha \times \frac{x - \text{mean}}{\text{std} + \epsilon} + \text{bias}
-  \]
+  \]$
 - **Parameters**: `alpha`, `bias` are learnable. `eps` is a small constant.
 
 ---
@@ -20,10 +20,10 @@ Note: The Attention model is taken from 'Attention is all you need' (https://arx
 
 - **Purpose**: A simple feed-forward neural network.
 - **Computation**: 
-  \[
+  $\[
   \text{output} = W_2 \times \text{ReLU}(W_1 \times x + b_1) + b_2
-  \]
-- **Parameters**: \(W_1\), \(b_1\), \(W_2\), \(b_2\)
+  \]$
+- **Parameters**: $\(W_1\), \(b_1\), \(W_2\), \(b_2\)$
 
 ---
 
@@ -45,9 +45,9 @@ Note: The Attention model is taken from 'Attention is all you need' (https://arx
 
 - **Purpose**: Helps in training deep networks via shortcut connections.
 - **Computation**: 
-  \[
+  $\[
   \text{output} = x + \text{sublayer}(x)
-  \]
+  \]$
 ---
 
 ### 6. Multi-Head Attention (`MultiHeadAttentionBlock`)
@@ -74,9 +74,9 @@ Note: The Attention model is taken from 'Attention is all you need' (https://arx
 
 - **Purpose**: Maps the decoder output to the target vocabulary.
 - **Computation**: 
-  \[
+  $\[
   \text{output} = \log(\text{Softmax}(W \times x + b))
-  \]
+  \]$
 
 ---
 
