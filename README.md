@@ -80,12 +80,14 @@ Note: The Attention model is taken from 'Attention is all you need' (https://arx
 
 ---
 
-## Computation Graph
+### Computation Graph
 
 1. **Encoding Phase**: Input -> InputEmbeddings -> PositionalEncoding -> Encoder
 2. **Decoding Phase**: Output of Encoder, Target Input -> InputEmbeddings -> PositionalEncoding -> Decoder
 3. **Projection**: Output of Decoder -> ProjectionLayer
 
-## Building the Model (`build_transformer`)
+### Building the Model (`build_transformer`)
 
 The function `build_transformer` is used to assemble these components into a complete Transformer model. It initializes the model's weights with Xavier Uniform
+
+## [`LightningModule`](https://github.com/aakashvardhan/attention-model-pl/blob/main/models/lightning_model.py)
